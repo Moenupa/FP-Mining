@@ -6,9 +6,7 @@ from itertools import combinations as comb
 
 class FPNode:
     """
-    A node in the FP tree. With count only, no itemset.
-    because children are dict{itemset: FPNode}
-    Frequency is obtained by (itemset, FPNode.freq) iterating through the children
+    A node in the FP tree.
     """
 
     def __init__(self, s: itemset | None, freq: int, parent: 'FPNode' = None) -> None:
@@ -153,18 +151,16 @@ class FPTree:
         """
         mine the patterns
         """
-        # if the tree has a single path, then we can just return the path
+        # if the tree has a single path, then just mine the path
         if FPTree.single_path(self.root):
             return self.mine_path()
 
-        # otherwise, we need to mine the tree
-        return self.zip_patterns(self.mine_tree(min_sup))
+        # otherwise, mine the tree
+        return self.zip_tree(self.mine_tree(min_sup))
 
     def mine_path(self) -> dict[itemset[itemset], int]:
         patterns: dict[itemset[itemset], int] = {}
 
-        # If in a conditional tree,
-        # the suffix is a pattern on its own.
         if self.root.s is None:
             suffix_value = itemset()
         else:
@@ -185,12 +181,10 @@ class FPTree:
 
     def mine_tree(self, min_sup: int) -> dict[itemset[itemset], int]:
         patterns = ddict(int)
-
-        # Get items in tree in reverse order of occurrences.
         for s, cell in reversed(list(self.headertable.items())):
             conditional_tree_input: List[itemset] = []
 
-            # For each occurrence of the item, trace the path back to the root node.
+            # For each occurrence, trace to root
             for suffix in self.trace_by_link(cell):
                 alpha = itemset()
                 for node in self.trace_by_parent(suffix):
@@ -199,18 +193,16 @@ class FPTree:
                 for i in range(suffix.freq):
                     conditional_tree_input.append(alpha)
 
-            # Now we have the input for a subtree,
-            # so construct it and grab the patterns.
             subtree = FPTree(conditional_tree_input, min_sup, (s, cell.freq))
             subtree_patterns = subtree.mine_patterns(min_sup)
 
-            # Insert subtree patterns into main patterns dictionary.
+            # aggregate all subtree patterns
             for pattern, freq in subtree_patterns.items():
                 patterns[pattern] += freq
 
         return patterns
 
-    def zip_patterns(self, patterns: dict[itemset[itemset], int]) -> dict[itemset[itemset], int]:
+    def zip_tree(self, patterns: dict[itemset[itemset], int]) -> dict[itemset[itemset], int]:
         """
         append the suffix to the patterns
         """
