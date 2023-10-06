@@ -1,4 +1,4 @@
-from utils import Transactions, AssociationRule, FrequentPattern, itemset
+from .utils import Transactions, AssociationRule, FrequentPattern, itemset
 from typing import Dict, Tuple, List, Iterable
 from collections import defaultdict as ddict
 from itertools import combinations as comb

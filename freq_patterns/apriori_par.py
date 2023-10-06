@@ -1,8 +1,8 @@
-from functools import partial
-from apriori import Apriori
+from .apriori import Apriori
+from .utils import FrequentPattern, AssociationRule, itemset, Transactions
 from typing import List, Tuple, Iterable, Set
-from utils import FrequentPattern, AssociationRule, itemset, Transactions
 from math import ceil
+from functools import partial
 from multiprocessing import Pool
 
 
@@ -37,7 +37,7 @@ class AprioriPar(Apriori):
         # and union them together
         freq_itemsets: set[itemset] = set()
 
-        with Pool(4) as pool:
+        with Pool(8) as pool:
             local_freq_iter = pool.map_async(partial(compute_local_Lk, min_sup=min_sup, k_thresh=2), self.partitions)
             for local_freq in local_freq_iter.get():
                 freq_itemsets |= local_freq
@@ -52,7 +52,7 @@ class AprioriPar(Apriori):
             FrequentPattern(s, self.support_lookup[s] / self.n_transactions)
             for s in Lk.prev()
         ]
-        return patterns, []  # self.association(Lk, min_conf)
+        return patterns, self.association(Lk, min_conf)
 
 
 if __name__ == '__main__':

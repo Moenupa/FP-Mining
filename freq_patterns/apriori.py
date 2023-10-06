@@ -1,4 +1,4 @@
-from utils import Transactions, FrequentItemSet, CandidateSet, AssociationRule, FrequentPattern, itemset
+from .utils import Transactions, FrequentItemSet, CandidateSet, AssociationRule, FrequentPattern, itemset
 from itertools import chain, combinations
 from typing import List, Set, Tuple
 from pprint import pprint
@@ -87,7 +87,7 @@ class Apriori(Transactions):
             FrequentPattern(s, self.support_lookup[s] / self.n_transactions)
             for s in Lk.prev()
         ]
-        return patterns, []  # , self.association(Lk, min_conf)
+        return patterns, self.association(Lk, min_conf)
 
     @staticmethod
     def pprint_step(Ck: CandidateSet, Lk: FrequentItemSet, k: int):
