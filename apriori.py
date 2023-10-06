@@ -6,6 +6,9 @@ from pprint import pprint
 
 # noinspection PyPep8Naming
 class Apriori(Transactions):
+    def __init__(self, transactions: list[itemset]) -> None:
+        super().__init__(transactions=transactions)
+
     @staticmethod
     def join(Lk: FrequentItemSet, k: int) -> Set[itemset]:
         # return Ck from Lk-1
@@ -31,46 +34,60 @@ class Apriori(Transactions):
                         combinations(s, n) for n in range(1, len(s))
                 ):
                     subset = itemset(subset)
-                    sup = Transactions.support(
-                        s, self.transactions, self.support_lookup)
-                    conf = sup / self.support_lookup[subset]
+                    sup = Transactions.support(s, self.transactions, self.support_lookup)
+                    conf = sup / Transactions.support(subset, self.transactions, self.support_lookup)
                     if conf > min_conf:
-                        rules.append(AssociationRule(subset, itemset(
-                            s - subset), sup / self.n_transactions, conf))
+                        rules.append(
+                            AssociationRule(subset, itemset(s - subset), sup / self.n_transactions, conf))
         return rules
 
-    def run(self, min_sup: float, min_conf: float) -> Tuple[List[FrequentPattern], List[AssociationRule]]:
+    def compute_Lk(self, min_sup: float, c0: set[itemset] = None, k_thresh: int = 999) -> FrequentItemSet:
         """
-        run the apriori algorithm.
-        Return both:
-        - `Lk` `[(FrequentItemSet, support), ...]`
-        - `rules` `[(ItemSetA, ItemSetB, confidence), ...]`
+        compute Lk from `self.transactions`
+        Returns
+        - FrequentItemSet, a DP table of Lk
+        - int, the number of transactions
         """
         Ck = CandidateSet()
         Lk = FrequentItemSet()
 
         k = 1
-        Ck[k] = set(itemset(i) for t in self.transactions for i in t)
+        if c0:
+            Ck[k] = c0
+        else:
+            Ck[k] = set(itemset([i]) for t in self.transactions for i in t)
         Lk[k] = set(s for s in Ck[k]
                     if Transactions.support(s, self.transactions, self.support_lookup)
                     >= min_sup * self.n_transactions)
         # self.pprint_step(Ck, Lk, k)
 
-        while Lk:
+        while Lk and k < k_thresh:
             k += 1
             Ck[k] = Apriori.join(Lk, k)
             Ck[k] = Apriori.prune(Ck, Lk, k)
+            # tqdm(Ck[k], desc=f'k={k}{f",p={partition}" if partition else ""}')
             Lk[k] = set(s for s in Ck[k]
                         if Transactions.support(s, self.transactions, self.support_lookup)
                         >= min_sup * self.n_transactions)
             # self.pprint_step(Ck, Lk, k)
+            
+        return Lk
+
+    def run(self, min_sup: float, min_conf: float) -> Tuple[List[FrequentPattern], List[AssociationRule]]:
+        """
+        run the apriori algorithm.
+        Returns
+        - frequent itemsets `[(FrequentItemSet, support), ...]`
+        - association rules `[(ItemSetA, ItemSetB, support, confidence), ...]`
+        """
+        Lk = self.compute_Lk(min_sup)
 
         # stop when Lk-1 != empty, Lk == empty, so return k-1
         patterns = [
             FrequentPattern(s, self.support_lookup[s] / self.n_transactions)
             for s in Lk.prev()
         ]
-        return patterns, self.association(Lk, min_conf)
+        return patterns, []  # , self.association(Lk, min_conf)
 
     @staticmethod
     def pprint_step(Ck: CandidateSet, Lk: FrequentItemSet, k: int):
@@ -82,6 +99,9 @@ class Apriori(Transactions):
 
 if __name__ == '__main__':
     # data = Transactions.sample(['ACD', 'BCE', 'ABCE', 'BE'])
-    data = Transactions.parse(['MONKEY', 'DONKEY', 'MAKE', 'MUCKY', 'COOKIE'])
-    sol = Apriori(data)
-    sol.run_and_pprint(0.6, 0.8)
+    # data = Transactions.parse(['MONKEY', 'DONKEY', 'MAKE', 'MUCKY', 'COOKIE'])
+    data = Transactions(iterator=[
+        ['money', 'bank'], ['monkey', 'banana', 'people', 'money'], ['money', 'goods'], ['people', 'money']
+    ])
+    sol = Apriori(data.transactions)
+    sol.run_and_pprint(0.5, 0.3)

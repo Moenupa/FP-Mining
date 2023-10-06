@@ -67,7 +67,7 @@ class FPTree:
 
     def init_headertable(self, min_sup: int) -> None:
         support_lookup: ddict[itemset, int] = ddict(int)
-        itemsets = set(itemset(i) for t in self.transactions for i in t)
+        itemsets = set(itemset([i]) for t in self.transactions for i in t)
         # build lookup table for support
         for s in itemsets:
             _ = Transactions.support(s, self.transactions, support_lookup)
@@ -175,7 +175,7 @@ class FPTree:
                     s = s | x
                 pattern = itemset(s | suffix_value)
                 patterns[pattern] = min(
-                    self.headertable[itemset(x)].freq for x in s)
+                    self.headertable[itemset([x])].freq for x in s)
 
         return patterns
 
@@ -213,12 +213,11 @@ class FPTree:
 
 
 class FPGrowth(Transactions):
-    def __init__(self, transaction_iterator: Iterable[Iterable]) -> None:
-        super().__init__(transaction_iterator)
+    def __init__(self, transactions: list[itemset]) -> None:
+        super().__init__(transactions=transactions)
 
     def run(self, min_sup: float, min_conf: float) -> Tuple[List[FrequentPattern], List[AssociationRule]]:
-        tree = FPTree(self.transactions, min_sup *
-                      self.n_transactions, (None, 0))
+        tree = FPTree(self.transactions, min_sup * self.n_transactions, (None, 0))
 
         patterns = tree.mine_patterns(min_sup * self.n_transactions)
         rules = []
@@ -242,7 +241,10 @@ class FPGrowth(Transactions):
 
 if __name__ == '__main__':
     # data = Transactions.parse(['ACD', 'BCE', 'ABCE', 'BE'])
-    data = Transactions.parse(['MONKEY', 'DONKEY', 'MAKE', 'MUCKY', 'COOKIE'])
+    # data = Transactions.parse(['MONKEY', 'DONKEY', 'MAKE', 'MUCKY', 'COOKIE'])
     # data = Transactions.parse(['ABCD', 'ABC', 'AB', 'A'])
-    sol = FPGrowth(data)
+    data = Transactions(iterator=[
+        ['money', 'bank'], ['monkey', 'banana', 'people', 'money'], ['money', 'goods'], ['people', 'money']
+    ])
+    sol = FPGrowth(data.transactions)
     sol.run_and_pprint(0.5, 0.8)
