@@ -33,7 +33,9 @@ def get_and_preprocess_data() -> pd.DataFrame:
 
 
 # noinspection PyPep8Naming
-def main(run_apriori: bool = True, run_apriori_par: bool = True, run_fpgrowth: bool = True, running_epochs: int = 10):
+def main(models: list[Transactions] = None, running_epochs: int = 1):
+    if models is None:
+        models = [Apriori, FPGrowth, AprioriPar]
     data = get_and_preprocess_data()
 
     # convert to transactions
@@ -42,28 +44,16 @@ def main(run_apriori: bool = True, run_apriori_par: bool = True, run_fpgrowth: b
     # print(len(T.transactions))
     
     configs = [(1e-2, 9e-1), (2e-2, 8e-1), (5e-2, 5e-1), (1e-1, 5e-1)]
-
+    configs = [(5e-1, 9e-1)]
+    print('sup,conf,'+",".join(m.__name__ for m in models))
     for sup, conf in configs:
         for _ in range(running_epochs):
-            print(f'[sup={sup}, conf={conf}] elapsed time (ns):')
-            if run_apriori:
-                apriori = Apriori(T.transactions)
-                _, _, timer_ns = apriori.timer(sup, conf)
-                print(f'Apriori:    {timer_ns}')
-
-            if run_apriori_par:
-                apriori_par = AprioriPar(T.transactions)
-                _, _, timer_ns = apriori_par.timer(sup, conf)
-                print(f'AprioriPar: {timer_ns}')
-
-            if run_fpgrowth:
-                fpgrowth = FPGrowth(T.transactions)
-                _, _, timer_ns = fpgrowth.timer(sup, conf)
-                print(f'FPGrowth:   {timer_ns}')
-
-            # Transactions.pprint(patterns_ap, [])
-            # Transactions.pprint(patterns_fp, [])
-            # Transactions.pprint(patterns_ap_par, [])
+            print(f'{sup},{conf}', end="")
+            for model in models:
+                m: Transactions = model(T.transactions)
+                _, _, timer_ns = m.timer(sup, conf)
+                print(f',{timer_ns}', end="")
+            print()
 
 
 if __name__ == '__main__':
