@@ -31,11 +31,14 @@ class Apriori(Transactions):
         for Lj in Lk:
             for s in Lj:
                 for subset in chain.from_iterable(
-                        combinations(s, n) for n in range(1, len(s))
+                    combinations(s, n) for n in range(1, len(s))
                 ):
                     subset = itemset(subset)
-                    sup = Transactions.support(s, self.transactions, self.support_lookup)
-                    conf = sup / Transactions.support(subset, self.transactions, self.support_lookup)
+                    sup = Transactions.support(
+                        s, self.transactions, self.support_lookup)
+                    conf = sup / \
+                        Transactions.support(
+                            subset, self.transactions, self.support_lookup)
                     if conf > min_conf:
                         rules.append(
                             AssociationRule(subset, itemset(s - subset), sup / self.n_transactions, conf))
@@ -70,7 +73,7 @@ class Apriori(Transactions):
                         if Transactions.support(s, self.transactions, self.support_lookup)
                         >= min_sup * self.n_transactions)
             # self.pprint_step(Ck, Lk, k)
-            
+
         return Lk
 
     def run(self, min_sup: float, min_conf: float) -> Tuple[List[FrequentPattern], List[AssociationRule]]:
@@ -85,7 +88,7 @@ class Apriori(Transactions):
         # stop when Lk-1 != empty, Lk == empty, so return k-1
         patterns = [
             FrequentPattern(s, self.support_lookup[s] / self.n_transactions)
-            for s in Lk.prev()
+            for s in Lk.all()
         ]
         return patterns, self.association(Lk, min_conf)
 
@@ -101,7 +104,8 @@ if __name__ == '__main__':
     # data = Transactions.sample(['ACD', 'BCE', 'ABCE', 'BE'])
     # data = Transactions.parse(['MONKEY', 'DONKEY', 'MAKE', 'MUCKY', 'COOKIE'])
     data = Transactions(iterator=[
-        ['money', 'bank'], ['monkey', 'banana', 'people', 'money'], ['money', 'goods'], ['people', 'money']
+        ['money', 'bank'], ['monkey', 'banana', 'people', 'money'], [
+            'money', 'goods'], ['people', 'money']
     ])
     sol = Apriori(data.transactions)
     sol.run_and_pprint(0.5, 0.3)

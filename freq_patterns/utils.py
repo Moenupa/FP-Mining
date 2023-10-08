@@ -114,9 +114,9 @@ class FrequentItemSet(ItemSetDP):
         # pad with a None to make index consistent with k
         # which is what we did in ItemSetDP
         # self.table: List[Set[itemset]] = [None, ]
-
-    def prev(self) -> Set[itemset]:
-        return self.table[self.k - 1]
+    
+    def all(self) -> Set[itemset]:
+        return set(s for lk in self.table for s in lk)
 
 
 class AssociationRule:

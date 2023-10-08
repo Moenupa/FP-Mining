@@ -12,6 +12,9 @@ def compute_local_Lk(obj: Apriori, min_sup: float, k_thresh: int) -> Set[itemset
 
 # noinspection PyPep8Naming
 class AprioriPar(Apriori):
+    """
+    Apriori Algorithm, improved with partitioning to support concurrent processing
+    """
     def __init__(self, transactions: list[itemset], n_partitions: int = 0) -> None:
         super().__init__(transactions=transactions)
         partition_size = self.n_transactions ** 0.75 if n_partitions <= 0 else self.n_transactions / n_partitions
@@ -50,7 +53,7 @@ class AprioriPar(Apriori):
         # stop when Lk-1 != empty, Lk == empty, so return k-1
         patterns = [
             FrequentPattern(s, self.support_lookup[s] / self.n_transactions)
-            for s in Lk.prev()
+            for s in Lk.all()
         ]
         return patterns, self.association(Lk, min_conf)
 

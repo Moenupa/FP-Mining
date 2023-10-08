@@ -1,7 +1,14 @@
-from ucimlrepo import fetch_ucirepo
-import pandas as pd
-import numpy as np
+from datetime import datetime as dt
 from freq_patterns import Transactions, Apriori, FPGrowth, AprioriPar
+from ucimlrepo import fetch_ucirepo
+import numpy as np
+import pandas as pd
+import pickle
+import random
+
+
+# set seed to reproduce the same results
+random.seed(0)
 
 
 # noinspection PyPep8Naming
@@ -21,7 +28,7 @@ def get_and_preprocess_data() -> pd.DataFrame:
 
     # we hope to extract features that are categorical, not numerical
     # and also, leave y alone
-    feat = adult.variables
+    feat: pd.DataFrame = adult.variables
     mask = feat['type'].isin({'Categorical', 'Binary'})
     mask2 = feat['role'].isin({'Feature'})
     feat = feat[mask & mask2]['name'].tolist()
@@ -30,10 +37,22 @@ def get_and_preprocess_data() -> pd.DataFrame:
     data = X[feat].join(y, how='outer')
 
     return data
+    
+    
+def run_model(model: Transactions, sup: float, conf: float, transactions: list, save: bool = True, save_name: str = ""):
+    m: Transactions = model(transactions=transactions)
+    out = m.timer(sup, conf)
+    print(f',{out[-1]}', end="")
+    
+    if not save:
+        return
+    
+    with open(f'out/{dt.now().strftime("%Y%m%d_%H%M")}_{save_name}.pkl', 'wb') as handle:
+        pickle.dump(out, handle)
 
 
 # noinspection PyPep8Naming
-def main(models: list[Transactions] = None, running_epochs: int = 1):
+def main(models: list[Transactions] = None, running_epochs: int = 10):
     if models is None:
         models = [Apriori, FPGrowth, AprioriPar]
     data = get_and_preprocess_data()
@@ -42,18 +61,29 @@ def main(models: list[Transactions] = None, running_epochs: int = 1):
     T = Transactions(iterator=data.values.tolist())
     # pprint(T.transactions[10:15])
     # print(len(T.transactions))
+
+    configs = [(1e-2, 9e-1), (2e-2, 8e-1), (5e-2, 5e-1),
+               (1e-1, 5e-1), (2e-1, 5e-1), (5e-1, 5e-1)]
+    # uci adult dataset has about 40k datapoints
+    n_dtpts = [1, 5e-1, 1e-1, 1e-2]
     
-    configs = [(1e-2, 9e-1), (2e-2, 8e-1), (5e-2, 5e-1), (1e-1, 5e-1)]
-    configs = [(5e-1, 9e-1)]
-    print('sup,conf,'+",".join(m.__name__ for m in models))
+    # configs = [(5e-1, 5e-1)]
+    # n_dtpts = [0.01]
+
+    # print csv header
+    print('sup,conf,n_dtpt,'+",".join(m.__name__ for m in models))
     for sup, conf in configs:
-        for _ in range(running_epochs):
-            print(f'{sup},{conf}', end="")
-            for model in models:
-                m: Transactions = model(T.transactions)
-                _, _, timer_ns = m.timer(sup, conf)
-                print(f',{timer_ns}', end="")
-            print()
+        for n_dtpt in n_dtpts:
+            for iter in range(running_epochs):
+                print(f'{sup},{conf},{n_dtpt}', end="")
+                
+                batch = random.sample(T.transactions, int(n_dtpt * T.n_transactions))
+                for model in models:
+                    # init the model with a random sample of datapoints
+                    run_model(model, sup, conf, batch, 
+                              save=(iter == 0 and n_dtpt == 1), 
+                              save_name=f"{sup}_{conf}_{n_dtpt}_{model.__name__}")
+                print()
 
 
 if __name__ == '__main__':
