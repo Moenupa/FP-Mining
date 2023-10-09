@@ -62,27 +62,27 @@ def main(models: list[Transactions] = None, running_epochs: int = 10):
     # pprint(T.transactions[10:15])
     # print(len(T.transactions))
 
-    configs = [(1e-2, 9e-1), (2e-2, 8e-1), (5e-2, 5e-1),
-               (1e-1, 5e-1), (2e-1, 5e-1), (5e-1, 5e-1)]
-    # uci adult dataset has about 40k datapoints
-    n_dtpts = [1, 5e-1, 1e-1, 1e-2]
+    configs = [(sup * 1e-2, 5e-1) for sup in [1, 2]]
+               #[1, 2, 5, 10, 20, 50]]
     
-    # configs = [(5e-1, 5e-1)]
-    # n_dtpts = [0.01]
+    # uci adult dataset has about 40k datapoints
+    n_dtpts = [1, 
+               2e-1, 5e-1, 1e-1, 
+               2e-2, 5e-2, 1e-2]
 
     # print csv header
     print('sup,conf,n_dtpt,'+",".join(m.__name__ for m in models))
     for sup, conf in configs:
-        for n_dtpt in n_dtpts:
+        for size in n_dtpts:
             for iter in range(running_epochs):
-                print(f'{sup},{conf},{n_dtpt}', end="")
+                print(f'{sup},{conf},{size}', end="")
                 
-                batch = random.sample(T.transactions, int(n_dtpt * T.n_transactions))
+                batch = random.sample(T.transactions, int(size * T.n_transactions))
                 for model in models:
                     # init the model with a random sample of datapoints
                     run_model(model, sup, conf, batch, 
-                              save=(iter == 0 and n_dtpt == 1), 
-                              save_name=f"{sup}_{conf}_{n_dtpt}_{model.__name__}")
+                              save=(iter == 0 and size == 1), 
+                              save_name=f"{sup}_{conf}_{model.__name__}")
                 print()
 
 
